@@ -1,7 +1,9 @@
 using Asp.netCore_Identity.Data;
+using Asp.netCore_Identity.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -31,7 +33,24 @@ namespace Asp.netCore_Identity
             services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlite(Configuration.GetSection("ConnectionStrings:SqliteCon").Value));
 
+            services.AddAutoMapper(typeof(Startup));
+
+            // Add Identity ConfigureServices ------------------------------
+
+            services.AddIdentity<User, Role>(option => {
+                option.Password.RequireDigit = false;
+                option.Password.RequiredLength = 6;
+                option.Password.RequireNonAlphanumeric = false;
+                option.Password.RequireUppercase = false;
+                option.Password.RequireLowercase = false;
+            })
+                .AddEntityFrameworkStores<ApplicationDbContext>();
+            //.AddDefaultTokenProviders();
+
+            // ------------------------------------------------------------------------------
+
             services.AddControllers();
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Asp.netCore_Identity", Version = "v1" });
