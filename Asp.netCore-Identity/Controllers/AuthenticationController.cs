@@ -25,14 +25,17 @@ namespace Asp.netCore_Identity.Controllers
         private readonly IConfiguration _configuration;
         private readonly IMapper _mapper;
         private readonly SignInManager<User> _signInManager;
+        private readonly RoleManager<Role> _roleManager;
 
         public AuthenticationController(UserManager<User> userManager,
-            IConfiguration configuration, IMapper mapper, SignInManager<User> signInManager)
+            IConfiguration configuration, IMapper mapper, SignInManager<User> signInManager,
+            RoleManager<Role> roleManager)
         {
             _userManager = userManager;
             _configuration = configuration;
             _mapper = mapper;
             _signInManager = signInManager;
+            _roleManager = roleManager;
         }
 
 
@@ -43,13 +46,24 @@ namespace Asp.netCore_Identity.Controllers
 
             var result = await _userManager.CreateAsync(userToCreate, userForCreateDto.Password);
 
-            var userToReturn = _mapper.Map<UserForReturnDto>(userToCreate);
-
+            
             if (!result.Succeeded) return BadRequest(result.Errors);
 
-            //return CreatedAtRoute("GetUserById", new { controller = "User", id = userToCreate.Id }, userToReturn);
+            // Create Role Member For User
+            var user = await _userManager.FindByNameAsync(userForCreateDto.UserName);
+            var resultRoleCreate = await _userManager.AddToRolesAsync(user, new[] { "Member" });
+            if (!resultRoleCreate.Succeeded) return BadRequest(result.Errors);
+            // ----------------------------
+
+            var userWithRole = await _userManager.Users.Where(u => u.UserName == userForCreateDto.UserName)
+                                  .Include(u => u.UserRoles).ThenInclude(ur => ur.Role.Name)
+                                  .FirstOrDefaultAsync();
+                                  
+            var userToReturn = _mapper.Map<UserForReturnDto>(userWithRole);
+
 
             return CreatedAtAction("GetUserById", new { controller = "User",id = userToCreate.Id }, userToReturn);
+            //return CreatedAtRoute("GetUserById", new { controller = "User", id = userToCreate.Id }, userToReturn);
         }
 
 
@@ -78,16 +92,22 @@ namespace Asp.netCore_Identity.Controllers
 
         }
 
-        private string GenerateJwtToken(User user)
+        private async Task<string> GenerateJwtToken(User user)
         {
 
             // Create Token
 
-            var claims = new[]
+            var claims = new List<Claim>()
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name,user.UserName)
             };
+
+            var roles = await GetUserRolesAsync(user);
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
 
             // genreated key and convert to bytes
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("JWT:TokenKey").Value));
@@ -108,6 +128,12 @@ namespace Asp.netCore_Identity.Controllers
             var token = tokenHandler.CreateToken(tokenDescriptor);
 
             return tokenHandler.WriteToken(token);
+        }
+
+        private async Task<IList<string>> GetUserRolesAsync(User user)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            return roles;
         }
     }
 }
