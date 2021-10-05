@@ -1,7 +1,6 @@
 ﻿using Asp.netCore_Identity.Dtos;
 using Asp.netCore_Identity.Models;
 using AutoMapper;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,12 +20,11 @@ namespace Asp.netCore_Identity.Controllers
     [ApiController]
     public class AuthenticationController : ControllerBase
     {
-        private readonly UserManager<User> _userManager;
         private readonly IConfiguration _configuration;
         private readonly IMapper _mapper;
-        private readonly SignInManager<User> _signInManager;
         private readonly RoleManager<Role> _roleManager;
-
+        private readonly SignInManager<User> _signInManager;
+        private readonly UserManager<User> _userManager;
         public AuthenticationController(UserManager<User> userManager,
             IConfiguration configuration, IMapper mapper, SignInManager<User> signInManager,
             RoleManager<Role> roleManager)
@@ -39,6 +37,8 @@ namespace Asp.netCore_Identity.Controllers
         }
 
 
+
+
         [HttpPost("signUp")]
         public async Task<ActionResult<UserForReturnDto>> SignUp(UserForCreateDto userForCreateDto)
         {
@@ -46,7 +46,7 @@ namespace Asp.netCore_Identity.Controllers
 
             var result = await _userManager.CreateAsync(userToCreate, userForCreateDto.Password);
 
-            
+
             if (!result.Succeeded) return BadRequest(result.Errors);
 
             // Create Role Member For User
@@ -58,14 +58,13 @@ namespace Asp.netCore_Identity.Controllers
             var userWithRole = await _userManager.Users.Where(u => u.UserName == userForCreateDto.UserName)
                                   .Include(u => u.UserRoles).ThenInclude(ur => ur.Role.Name)
                                   .FirstOrDefaultAsync();
-                                  
+
             var userToReturn = _mapper.Map<UserForReturnDto>(userWithRole);
 
 
-            return CreatedAtAction("GetUserById", new { controller = "User",id = userToCreate.Id }, userToReturn);
+            return CreatedAtAction("GetUserById", new { controller = "User", id = userToCreate.Id }, userToReturn);
             //return CreatedAtRoute("GetUserById", new { controller = "User", id = userToCreate.Id }, userToReturn);
         }
-
 
 
         [HttpPost("logIn")]
@@ -91,6 +90,7 @@ namespace Asp.netCore_Identity.Controllers
             return Unauthorized();
 
         }
+
 
         private async Task<string> GenerateJwtToken(User user)
         {

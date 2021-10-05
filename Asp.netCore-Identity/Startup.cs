@@ -1,5 +1,7 @@
+using Asp.netCore_Identity.Contracts;
 using Asp.netCore_Identity.Data;
 using Asp.netCore_Identity.Models;
+using Asp.netCore_Identity.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -33,6 +35,9 @@ namespace Asp.netCore_Identity
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
+            services.AddScoped<IUserRepository, UserRepository>();
+
             services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlite(Configuration.GetSection("ConnectionStrings:SqliteCon").Value));
 
@@ -40,7 +45,8 @@ namespace Asp.netCore_Identity
 
             // Add Identity ConfigureServices ------------------------------
 
-            services.AddIdentity<User, Role>(option => {
+            services.AddIdentity<User, Role>(option =>
+            {
                 option.Password.RequireDigit = false;
                 option.Password.RequiredLength = 6;
                 option.Password.RequireNonAlphanumeric = false;

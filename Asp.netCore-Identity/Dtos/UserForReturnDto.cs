@@ -11,6 +11,8 @@ namespace Asp.netCore_Identity.Dtos
         public int Id { get; set; }
         public string UserName { get; set; }
         public string NormalizedUserName { get; set; }
-        public List<string> Roles { get; set; }
+        public List<string> RolesString { get; set; }
+        public List<RoleForUserDto> Roles { get; set; }
+
     }
 }
